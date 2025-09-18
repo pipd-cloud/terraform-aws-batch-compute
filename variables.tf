@@ -1,4 +1,3 @@
-# Networking
 variable "vpc_id" {
   type        = string
   description = "The VPC ID where resources are created"
@@ -14,12 +13,6 @@ variable "security_group_enabled" {
   type        = bool
   description = "Whether to create a security group for the compute environment."
   default     = true
-}
-
-variable "security_group_description" {
-  type        = string
-  default     = "Alow all egress traffic"
-  description = "The description of the security group created for the compute environment"
 }
 
 variable "enable_all_egress_rule" {
@@ -38,36 +31,6 @@ variable "security_group_ids" {
   type        = list(string)
   description = "Additional security groups to attach to the compute environment"
   default     = []
-}
-
-# IAM role
-variable "exec_role_enabled" {
-  description = "Create an IAM role that the Amazon ECS container agent and the Docker daemon can assume"
-  type        = bool
-  default     = true
-}
-
-variable "exec_policy_arns_map" {
-  type        = map(string)
-  description = <<-EOT
-    A map of name to IAM Policy ARNs to attach to the generated task execution role.
-    EOT
-  default     = {}
-}
-
-variable "exec_policy_json_map" {
-  type        = map(string)
-  description = <<-EOT
-    A map of name to IAM Policy Documents in JSON format to attach to the generated task execution role.
-    EOT
-  default     = {}
-}
-
-variable "permissions_boundary" {
-  type        = string
-  description = "A permissions boundary ARN to apply to the execution role"
-  nullable    = true
-  default     = null
 }
 
 # Compute

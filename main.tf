@@ -1,7 +1,6 @@
 locals {
   enabled = module.this.enabled
 
-  create_exec_role      = local.enabled && var.exec_role_enabled
   create_security_group = local.enabled && var.security_group_enabled
   create_queue          = local.enabled && var.default_queue_enabled
 
@@ -19,16 +18,8 @@ locals {
   cluster_arn = local.use_fargate ? aws_batch_compute_environment.fargate[0].ecs_cluster_arn : (
     local.use_ec2 ? aws_batch_compute_environment.ec2[0].ecs_cluster_arn : null
   )
-  exec_role_name = local.create_exec_role ? aws_iam_role.exec[0].name : null
-  exec_role_arn  = local.create_exec_role ? aws_iam_role.exec[0].arn : null
-  exec_role_id   = local.create_exec_role ? aws_iam_role.exec[0].unique_id : null
-  exec_role_policy_arn_map = local.create_exec_role ? merge(
-    { for k, v in aws_iam_policy.exec_custom : k => v.arn },
-    var.exec_policy_arns_map,
-  ) : {}
   queue_arn = local.create_queue ? aws_batch_job_queue.default[0].arn : null
 }
-
 
 module "batch_label" {
   source     = "cloudposse/label/null"
@@ -51,7 +42,6 @@ resource "aws_batch_compute_environment" "fargate" {
     max_vcpus          = var.max_vcpus
   }
 }
-
 
 resource "aws_batch_compute_environment" "ec2" {
   count = local.enabled && local.use_ec2 ? 1 : 0
@@ -118,60 +108,14 @@ resource "aws_batch_job_queue" "default" {
   tags = module.queue_label.tags
 }
 
-
-module "exec_label" {
-  source     = "cloudposse/label/null"
-  version    = "0.25.0"
-  enabled    = local.create_exec_role
-  attributes = ["exec"]
-  context    = module.this.context
-}
-
-resource "aws_iam_role" "exec" {
-  count                = local.create_exec_role ? 1 : 0
-  name                 = module.exec_label.id
-  assume_role_policy   = data.aws_iam_policy_document.exec_trust[0].json
-  permissions_boundary = var.permissions_boundary
-  tags                 = module.exec_label.tags
-}
-
-resource "aws_iam_role_policy" "exec" {
-  count  = local.create_exec_role ? 1 : 0
-  name   = module.exec_label.id
-  policy = data.aws_iam_policy.exec.arn
-  role   = aws_iam_role.exec[0].id
-}
-
-resource "aws_iam_policy" "exec_custom" {
-  for_each = local.create_exec_role ? var.exec_policy_json_map : {}
-  name     = "${module.exec_label.id}-${each.key}"
-  policy   = each.value
-  tags     = module.exec_label.tags
-}
-
-resource "aws_iam_role_policy_attachment" "exec_custom" {
-  for_each   = local.create_exec_role ? aws_iam_policy.exec_custom : {}
-  policy_arn = each.value.arn
-  role       = aws_iam_role.exec[0].id
-}
-
-resource "aws_iam_role_policy_attachment" "exec" {
-  for_each   = local.create_exec_role ? var.exec_policy_arns_map : {}
-  policy_arn = each.value
-  role       = aws_iam_role.exec[0].id
-}
-
 resource "aws_security_group" "batch" {
   count       = local.create_security_group ? 1 : 0
-  vpc_id      = var.vpc_id
   name        = module.batch_label.id
-  description = var.security_group_description
+  description = "Security group for AWS Batch compute environment"
+  vpc_id      = var.vpc_id
   tags        = module.batch_label.tags
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
+
 
 resource "aws_security_group_rule" "allow_all_egress" {
   count             = local.create_security_group && var.enable_all_egress_rule ? 1 : 0
