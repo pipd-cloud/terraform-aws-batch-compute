@@ -34,14 +34,20 @@ variable "security_group_ids" {
 }
 
 # Compute
-variable "env_resource" {
+variable "compute_environment_resource" {
   description = "The type of compute resource to use for the Batch compute environment. Valid values are EC2, SPOT, FARGATE, and FARGATE_SPOT."
   type        = string
   default     = "FARGATE"
   validation {
-    condition     = contains(["EC2", "SPOT", "FARGATE", "FARGATE_SPOT"], var.env_resource)
-    error_message = "env_resource must be one of 'EC2', 'SPOT', 'FARGATE', or 'FARGATE_SPOT'."
+    condition     = contains(["EC2", "SPOT", "FARGATE", "FARGATE_SPOT"], var.compute_environment_resource)
+    error_message = "compute_environment_resource must be one of 'EC2', 'SPOT', 'FARGATE', or 'FARGATE_SPOT'."
   }
+}
+
+variable "other_compute_environment_queue" {
+  description = "A list of additional compute environments to add to the default queue."
+  type        = list(string)
+  default     = []
 }
 
 variable "max_vcpus" {
@@ -171,8 +177,15 @@ variable "env_enabled" {
 }
 
 # Batch queue
-variable "default_queue_enabled" {
-  description = "Create a default job queue"
+variable "create_default_queue" {
+  description = "Whether to create a default job queue"
   type        = bool
   default     = true
 }
+
+variable "default_queue_enabled" {
+  description = "Whether the default job queue should be enabled."
+  type        = bool
+  default     = true
+}
+
